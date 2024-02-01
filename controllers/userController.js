@@ -8,10 +8,11 @@ const createToken = (_id) => {
   return jwt.sign({_id}, process.env.SECRET, {expiresIn: "3d"});
 }
 
-// register user
+// register users
 const registerUser = async (req,res) =>{
+  const {name,email,password} = req.body;
+
   try{
-    const {name,email,password} = req.body;
 
   const exist = await userModel.findOne({email});
 
@@ -47,8 +48,35 @@ const registerUser = async (req,res) =>{
   }
   catch(err){
     console.log(err);
-    res.status(500).json(error)
+    res.status(500).json(err)
   }
 }
 
-module.exports = {registerUser};
+// login users
+
+const loginUser = async (req,res) => {
+  const {email, password} = req.body;
+
+  try{
+    const user = await userModel.findOne({email});
+
+    if(!user){
+      return res.status(400).json("Invalid email or password!");
+    }
+
+  // comparing password
+  const isValidPass = await bcrypt.compare(password, user.password);
+
+  if(!isValidPass){
+    return res.status(400).json("Incorrect password!");
+  }
+  // create a token
+  const token = createToken(user._id);
+  res.status(200).json({_id: user._id, name: user.name, email, password: user.password, token})
+  }catch(err){
+    console.log(err);
+    res.status(500).json(err)
+  }
+}
+
+module.exports = {registerUser, loginUser};
